@@ -451,3 +451,180 @@ A **Conflated flow** is a variation of a hot flow where only the **most recent v
 | **Conflated Flow**   | Hot         | Yes                   | Emits only the latest value, overwriting old |
 
 Each type of flow has its own use cases, depending on whether you want data to start emitting immediately, replay values for new subscribers, or emit on-demand when collected.
+
+### 14. How to handle exceptions in Kotlin Coroutines?
+
+Handling exceptions in Kotlin **Coroutines** is crucial to ensure that your program can gracefully recover from errors. Kotlin provides various ways to handle exceptions in coroutines depending on the context (e.g., structured concurrency, exception propagation, etc.).
+
+### 1. **Try-Catch Block**
+The simplest way to handle exceptions in coroutines is by using a **try-catch block**. This approach works just like traditional exception handling in Kotlin.
+
+- **Example**:
+  ```kotlin
+  fun main() = runBlocking {
+      try {
+          launch {
+              throw RuntimeException("Something went wrong!")
+          }
+      } catch (e: Exception) {
+          println("Caught an exception: ${e.message}")
+      }
+  }
+  ```
+- **Key Points**:
+  - Exceptions can be caught directly inside the coroutine body.
+  - If an exception occurs inside a coroutine, it can be caught within that coroutine using `try-catch`.
+
+### 2. **`CoroutineExceptionHandler`**
+`CoroutineExceptionHandler` is a specialized handler that deals with **uncaught exceptions** in **structured concurrency** (i.e., `launch` coroutines). It is used to catch exceptions in a **global scope** and provides a centralized way of handling errors.
+
+- **Example**:
+  ```kotlin
+  val exceptionHandler = CoroutineExceptionHandler { _, exception ->
+      println("Caught exception: ${exception.message}")
+  }
+
+  fun main() = runBlocking {
+      val job = launch(exceptionHandler) {
+          throw RuntimeException("Something went wrong!")
+      }
+      job.join()
+  }
+  ```
+- **Key Points**:
+  - The `CoroutineExceptionHandler` handles exceptions that are **not caught** by the coroutine itself.
+  - It works for **launch** coroutines but **not** for `async`, since `async` returns a `Deferred` and exceptions are handled differently there (see next section).
+
+### 3. **Handling Exceptions with `async` and `Deferred`**
+When using `async`, the exception is not immediately thrown. Instead, it is deferred until you call `await()`. This means you can handle exceptions using `try-catch` around the `await()` call.
+
+- **Example**:
+  ```kotlin
+  fun main() = runBlocking {
+      val deferred = async {
+          throw RuntimeException("Something went wrong!")
+      }
+
+      try {
+          deferred.await()
+      } catch (e: Exception) {
+          println("Caught an exception: ${e.message}")
+      }
+  }
+  ```
+- **Key Points**:
+  - For `async`, exceptions are propagated when you call `await()`.
+  - Always wrap `await()` in `try-catch` to handle exceptions.
+
+### 4. **SupervisorJob for Isolated Failure Handling**
+By default, if a child coroutine in a structured concurrency block fails, all other sibling coroutines will be canceled. To prevent this and allow sibling coroutines to run independently, you can use a **`SupervisorJob`**.
+
+- **Example**:
+  ```kotlin
+  fun main() = runBlocking {
+      val supervisor = SupervisorJob()
+
+      val scope = CoroutineScope(coroutineContext + supervisor)
+
+      val job1 = scope.launch {
+          throw RuntimeException("Job 1 failed")
+      }
+
+      val job2 = scope.launch {
+          delay(1000)
+          println("Job 2 completed successfully")
+      }
+
+      job1.join()
+      job2.join()
+  }
+  ```
+- **Key Points**:
+  - A **`SupervisorJob`** isolates failures, so even if one child coroutine fails, others can continue running.
+  - Useful when you want to contain the failure of one task without affecting others.
+
+### 5. **Exception Propagation in Structured Concurrency**
+Exceptions in coroutines propagate depending on the type of coroutine:
+- **`launch`**: Throws exceptions immediately and automatically cancels its parent (unless a `SupervisorJob` is used).
+- **`async`**: Defers the exception until `await()` is called.
+  
+  **Example**:
+  ```kotlin
+  fun main() = runBlocking {
+      val job = launch {
+          async {
+              throw RuntimeException("Error inside async")
+          }.await()
+      }
+
+      try {
+          job.join()
+      } catch (e: Exception) {
+          println("Caught exception: ${e.message}")
+      }
+  }
+  ```
+
+### 6. **Exception Aggregation with Multiple Child Coroutines**
+In Kotlin, multiple child coroutines running in parallel may throw exceptions. In such cases, the first exception is propagated, and other exceptions are suppressed. You can access them using `Throwable.suppressed`.
+
+- **Example**:
+  ```kotlin
+  fun main() = runBlocking {
+      val job = launch {
+          val child1 = launch {
+              throw RuntimeException("Child 1 failure")
+          }
+          val child2 = launch {
+              throw RuntimeException("Child 2 failure")
+          }
+      }
+
+      try {
+          job.join()
+      } catch (e: Exception) {
+          println("Caught: ${e.message}")
+          e.suppressed.forEach { suppressed ->
+              println("Suppressed: ${suppressed.message}")
+          }
+      }
+  }
+  ```
+- **Key Points**:
+  - The first exception is thrown, while others are marked as suppressed.
+  - Useful when handling multiple failures in parallel coroutines.
+
+### 7. **Exception Handling in `flow`**
+For handling exceptions in **Kotlin Flow**, you can use **`catch`** operators. It allows you to handle exceptions at different points in the flow's lifecycle.
+
+- **Example**:
+  ```kotlin
+  fun getNumbers(): Flow<Int> = flow {
+      for (i in 1..5) {
+          if (i == 3) throw RuntimeException("Error on 3")
+          emit(i)
+      }
+  }
+
+  fun main() = runBlocking {
+      getNumbers()
+          .catch { e -> println("Caught exception: ${e.message}") }
+          .collect { value -> println(value) }
+  }
+  ```
+- **Key Points**:
+  - `catch` operator intercepts errors and allows you to handle them in a flow context.
+  - Place `catch` before `collect` to handle exceptions properly.
+
+---
+
+### Summary of Exception Handling in Coroutines:
+1. **Try-Catch Block**: Use within a coroutine for basic exception handling.
+2. **`CoroutineExceptionHandler`**: Handles uncaught exceptions in `launch` coroutines globally.
+3. **`async` and `await()`**: Handle exceptions when calling `await()` in `async` coroutines.
+4. **`SupervisorJob`**: Prevents failure propagation between sibling coroutines.
+5. **Structured Concurrency**: Manage exception propagation through different coroutine types (`launch`, `async`).
+6. **Multiple Exceptions**: Access suppressed exceptions using `Throwable.suppressed`.
+7. **Flow Exception Handling**: Use `catch` operator to manage exceptions in flows.
+
+By applying these techniques, you can effectively handle exceptions in various coroutine contexts and ensure a resilient and stable application.
