@@ -272,28 +272,182 @@ The value of `myValue` will only be computed when accessed, and the result is ca
 
 ---
 
-### 12. **What are Coroutines Scopes in Kotlin? Explain with an example.**
+### 12. **What are Coroutines Scopes in Kotlin?**
 
 **Answer**:
-Coroutine scopes define the lifecycle of coroutines. When the scope is canceled, all coroutines within it are canceled. Common scopes include `GlobalScope`,
+In Kotlin, **coroutine scopes** manage the lifecycle of coroutines. A coroutine scope defines the context in which coroutines are launched and ensures that they are properly canceled when no longer needed. When a scope is canceled, all coroutines running in that scope are also canceled.
 
+#### **Types of Coroutine Scopes in Kotlin**:
+There are several predefined scopes that you can use based on the context of your application:
+  
+1. **GlobalScope**:
+   - A global scope that launches top-level coroutines.
+   - These coroutines run independently of the lifecycle of any specific component (like an Activity in Android) and only terminate when the application itself is terminated.
+   
+   **Example**:
+   ```kotlin
+   fun main() {
+       GlobalScope.launch {
+           delay(1000)
+           println("Hello from GlobalScope!")
+       }
+       println("Outside of coroutine")
+       Thread.sleep(2000) // Blocks the main thread to allow the coroutine to complete
+   }
+   ```
 
-
- `viewModelScope`, and `lifecycleScope`.
-
-```kotlin
-GlobalScope.launch {
-    // Coroutine runs in GlobalScope
-}
-
-viewModelScope.launch {
-    // Coroutine runs in the ViewModel scope and is canceled when ViewModel is cleared
-}
-```
+   - **Usage**: Rarely recommended, as coroutines launched in `GlobalScope` are not tied to any specific lifecycle and may lead to memory leaks if not handled properly.
 
 ---
 
-These answers should cover key concepts you might encounter in Kotlin-related technical interviews!
+2. **`runBlocking` Scope**:
+   - **`runBlocking`** is a coroutine builder that bridges the coroutine world with the blocking world of the regular code. It blocks the current thread until the coroutine finishes execution.
+   
+   **Example**:
+   ```kotlin
+   fun main() = runBlocking {
+       println("Start of runBlocking scope")
+
+       launch {
+           delay(1000)
+           println("Inside coroutine")
+       }
+
+       println("End of runBlocking scope")
+   }
+   ```
+
+   - **Usage**: Typically used for testing or in main functions where you need to block the execution until all coroutines finish their work.
+
+---
+
+3. **`CoroutineScope`**:
+   - The most commonly used scope in real-world applications. A **`CoroutineScope`** provides context for launching coroutines and includes a **`Job`** and a **`Dispatcher`** (which defines the thread in which the coroutine will run).
+
+   **Example**:
+   ```kotlin
+   class MyClass {
+       private val scope = CoroutineScope(Dispatchers.Default)
+
+       fun doWork() {
+           scope.launch {
+               delay(1000)
+               println("Work completed")
+           }
+       }
+
+       fun clear() {
+           scope.cancel()  // Cancels all coroutines started in this scope
+       }
+   }
+   ```
+
+   - **Usage**: `CoroutineScope` is commonly used in Android, where components like `Activity` or `ViewModel` need to launch coroutines. Once the component's lifecycle ends, the scope is canceled, ensuring all associated coroutines are also canceled.
+
+---
+
+4. **`viewModelScope` (Android specific)**:
+   - A predefined coroutine scope tied to the lifecycle of a **`ViewModel`**. It’s part of **Android Jetpack** and ensures that coroutines are automatically canceled when the ViewModel is cleared (e.g., when the screen is rotated or the Activity is destroyed).
+
+   **Example**:
+   ```kotlin
+   class MyViewModel : ViewModel() {
+       fun fetchData() {
+           viewModelScope.launch {
+               delay(1000)
+               println("Data fetched")
+           }
+       }
+   }
+   ```
+
+   - **Usage**: This is ideal for launching coroutines tied to the lifecycle of a ViewModel, ensuring that long-running tasks like network requests or database operations are properly managed.
+
+---
+
+5. **`lifecycleScope` (Android specific)**:
+   - **`lifecycleScope`** is a predefined scope tied to the lifecycle of an Android **Activity** or **Fragment**. Coroutines launched in this scope are automatically canceled when the corresponding lifecycle (like `onDestroy` for an Activity) is triggered.
+
+   **Example**:
+   ```kotlin
+   class MyActivity : AppCompatActivity() {
+       override fun onCreate(savedInstanceState: Bundle?) {
+           super.onCreate(savedInstanceState)
+
+           lifecycleScope.launch {
+               delay(1000)
+               println("Task running in lifecycleScope")
+           }
+       }
+   }
+   ```
+
+   - **Usage**: Use `lifecycleScope` to launch coroutines in Android components (like Activities and Fragments) that automatically handle coroutine cancellation based on lifecycle events.
+
+---
+
+#### **How Coroutine Scopes Ensure Proper Cancellation:**
+
+1. **Job Hierarchy**:
+   When you launch coroutines within a scope, they are attached to a parent **`Job`**. If the parent job (scope) is canceled, all of its child coroutines are also canceled automatically. This ensures that resources are freed up and no background tasks are left running after they are no longer needed.
+
+   **Example**:
+   ```kotlin
+   fun main() = runBlocking {
+       val parentJob = launch {
+           launch {
+               delay(1000)
+               println("Child 1 completed")
+           }
+
+           launch {
+               delay(2000)
+               println("Child 2 completed")
+           }
+       }
+
+       delay(500)  // Wait for half a second
+       parentJob.cancel()  // Cancels all child coroutines
+       println("Parent job canceled")
+   }
+   ```
+
+2. **Supervision with `SupervisorJob`**:
+   Normally, if one coroutine fails, it cancels all other coroutines in the scope. However, using **`SupervisorJob`** allows sibling coroutines to continue running even if one fails.
+
+   **Example**:
+   ```kotlin
+   val supervisor = SupervisorJob()
+   val scope = CoroutineScope(Dispatchers.Default + supervisor)
+
+   scope.launch {
+       launch {
+           delay(1000)
+           throw RuntimeException("Failure in Child 1")
+       }
+
+       launch {
+           delay(2000)
+           println("Child 2 completed")
+       }
+   }
+   ```
+
+   In this case, even if one child coroutine fails, others can still complete their work.
+
+---
+
+#### **Common Coroutine Scopes Use Cases**:
+- **GlobalScope**: Used rarely, often for fire-and-forget tasks.
+- **runBlocking**: Used in testing or to bridge blocking code with coroutine code.
+- **CoroutineScope**: Used for managing coroutine lifecycles manually (typically tied to lifecycle events in Android, server processes, or custom services).
+- **viewModelScope**: Tied to ViewModel in Android apps; ensures coroutine cancellation when ViewModel is cleared.
+- **lifecycleScope**: Tied to Activity or Fragment lifecycles in Android, ensuring coroutines are canceled when the component is destroyed.
+
+---
+
+#### Summary:
+Coroutine scopes are essential for managing the lifecycle of coroutines in Kotlin. They ensure proper cancellation and cleanup of resources, especially when dealing with long-running tasks like network requests or data processing. The choice of scope depends on the context in which the coroutine is used (e.g., global tasks, view model, activity lifecycle).
 
 ### **13. What are the types of Flows in Kotlin?**
 
