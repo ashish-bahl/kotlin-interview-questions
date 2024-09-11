@@ -1,4 +1,4 @@
-# kotlin-interview-questions
+# Kotlin Interview Questions from my interview experiences
 
 Here are detailed answers for the two Kotlin questions you were asked, followed by 10 more advanced Kotlin questions along with their answers.
 
@@ -299,7 +299,7 @@ These answers should cover key concepts you might encounter in Kotlin-related te
 
 In Kotlin, **Flows** are a type of **asynchronous data stream** that emit values over time, making them useful for representing real-time data or multiple values (such as lists or sequences). There are various types of **Flows** in Kotlin, each designed to suit different use cases. Here's an overview of the main types of flows and their differences:
 
-### 1. **Cold Flows**
+#### 1. **Cold Flows**
 Cold flows are lazy and don’t emit data until they are collected. Each time a cold flow is collected, it starts emitting values from the beginning.
 
 - **Standard Flow**: This is the most basic type of flow. It starts emitting items only when `collect()` is called, and each collector gets the entire flow from the start.
@@ -319,14 +319,14 @@ Cold flows are lazy and don’t emit data until they are collected. Each time a 
   - Each collector gets its own sequence of emitted values.
   - Suitable for when each collection needs fresh data.
 
-### 2. **Hot Flows**
+#### 2. **Hot Flows**
 Hot flows start emitting values as soon as they are created, whether there are collectors or not. They behave like a continuous stream, where subscribers will only receive values emitted after they subscribe.
 
 There are two main types of **Hot Flows**: **SharedFlow** and **StateFlow**.
 
 ---
 
-### 3. **StateFlow**
+#### 3. **StateFlow**
 A **StateFlow** is a hot flow designed to hold a **single state**. It always holds and emits the latest value to new subscribers. It is similar to **LiveData** in Android but works with coroutines.
 
 - **Example**:
@@ -349,7 +349,7 @@ A **StateFlow** is a hot flow designed to hold a **single state**. It always hol
 
 ---
 
-### 4. **SharedFlow**
+#### 4. **SharedFlow**
 A **SharedFlow** is another hot flow, but it can **emit multiple values** to multiple subscribers without holding the state. It allows **replaying** a certain number of recent emissions for new collectors.
 
 - **Example**:
@@ -374,7 +374,7 @@ A **SharedFlow** is another hot flow, but it can **emit multiple values** to mul
 
 ---
 
-### 5. **Replayable Flows** (SharedFlow with Replay)
+#### 5. **Replayable Flows** (SharedFlow with Replay)
 A **SharedFlow** can be configured to **replay** a certain number of the most recent emissions to new collectors. This ensures that when a new collector subscribes, it will receive previously emitted values, depending on the replay buffer size.
 
 - **Example**:
@@ -396,7 +396,7 @@ A **SharedFlow** can be configured to **replay** a certain number of the most re
 
 ---
 
-### 6. **Channel-based Flows**
+#### 6. **Channel-based Flows**
 Kotlin Channels are more primitive and allow coroutines to **send and receive data** asynchronously. Channels are more like conduits for communication and support **backpressure**.
 
 - **Example**:
@@ -423,7 +423,7 @@ Kotlin Channels are more primitive and allow coroutines to **send and receive da
 
 ---
 
-### 7. **Conflated Flows**
+#### 7. **Conflated Flows**
 A **Conflated flow** is a variation of a hot flow where only the **most recent value** is emitted to the collectors. This is similar to the behavior of `StateFlow` but can be used with a regular flow.
 
 - **Example**:
@@ -456,7 +456,7 @@ Each type of flow has its own use cases, depending on whether you want data to s
 
 Handling exceptions in Kotlin **Coroutines** is crucial to ensure that your program can gracefully recover from errors. Kotlin provides various ways to handle exceptions in coroutines depending on the context (e.g., structured concurrency, exception propagation, etc.).
 
-### 1. **Try-Catch Block**
+#### 1. **Try-Catch Block**
 The simplest way to handle exceptions in coroutines is by using a **try-catch block**. This approach works just like traditional exception handling in Kotlin.
 
 - **Example**:
@@ -475,7 +475,7 @@ The simplest way to handle exceptions in coroutines is by using a **try-catch bl
   - Exceptions can be caught directly inside the coroutine body.
   - If an exception occurs inside a coroutine, it can be caught within that coroutine using `try-catch`.
 
-### 2. **`CoroutineExceptionHandler`**
+#### 2. **`CoroutineExceptionHandler`**
 `CoroutineExceptionHandler` is a specialized handler that deals with **uncaught exceptions** in **structured concurrency** (i.e., `launch` coroutines). It is used to catch exceptions in a **global scope** and provides a centralized way of handling errors.
 
 - **Example**:
@@ -495,7 +495,7 @@ The simplest way to handle exceptions in coroutines is by using a **try-catch bl
   - The `CoroutineExceptionHandler` handles exceptions that are **not caught** by the coroutine itself.
   - It works for **launch** coroutines but **not** for `async`, since `async` returns a `Deferred` and exceptions are handled differently there (see next section).
 
-### 3. **Handling Exceptions with `async` and `Deferred`**
+#### 3. **Handling Exceptions with `async` and `Deferred`**
 When using `async`, the exception is not immediately thrown. Instead, it is deferred until you call `await()`. This means you can handle exceptions using `try-catch` around the `await()` call.
 
 - **Example**:
@@ -516,7 +516,7 @@ When using `async`, the exception is not immediately thrown. Instead, it is defe
   - For `async`, exceptions are propagated when you call `await()`.
   - Always wrap `await()` in `try-catch` to handle exceptions.
 
-### 4. **SupervisorJob for Isolated Failure Handling**
+#### 4. **SupervisorJob for Isolated Failure Handling**
 By default, if a child coroutine in a structured concurrency block fails, all other sibling coroutines will be canceled. To prevent this and allow sibling coroutines to run independently, you can use a **`SupervisorJob`**.
 
 - **Example**:
@@ -543,7 +543,7 @@ By default, if a child coroutine in a structured concurrency block fails, all ot
   - A **`SupervisorJob`** isolates failures, so even if one child coroutine fails, others can continue running.
   - Useful when you want to contain the failure of one task without affecting others.
 
-### 5. **Exception Propagation in Structured Concurrency**
+#### 5. **Exception Propagation in Structured Concurrency**
 Exceptions in coroutines propagate depending on the type of coroutine:
 - **`launch`**: Throws exceptions immediately and automatically cancels its parent (unless a `SupervisorJob` is used).
 - **`async`**: Defers the exception until `await()` is called.
@@ -565,7 +565,7 @@ Exceptions in coroutines propagate depending on the type of coroutine:
   }
   ```
 
-### 6. **Exception Aggregation with Multiple Child Coroutines**
+#### 6. **Exception Aggregation with Multiple Child Coroutines**
 In Kotlin, multiple child coroutines running in parallel may throw exceptions. In such cases, the first exception is propagated, and other exceptions are suppressed. You can access them using `Throwable.suppressed`.
 
 - **Example**:
@@ -594,7 +594,7 @@ In Kotlin, multiple child coroutines running in parallel may throw exceptions. I
   - The first exception is thrown, while others are marked as suppressed.
   - Useful when handling multiple failures in parallel coroutines.
 
-### 7. **Exception Handling in `flow`**
+#### 7. **Exception Handling in `flow`**
 For handling exceptions in **Kotlin Flow**, you can use **`catch`** operators. It allows you to handle exceptions at different points in the flow's lifecycle.
 
 - **Example**:
