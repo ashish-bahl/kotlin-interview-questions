@@ -782,3 +782,235 @@ For handling exceptions in **Kotlin Flow**, you can use **`catch`** operators. I
 7. **Flow Exception Handling**: Use `catch` operator to manage exceptions in flows.
 
 By applying these techniques, you can effectively handle exceptions in various coroutine contexts and ensure a resilient and stable application.
+
+### 15. **How do you define relations in Room database (one-to-one, one-to-many)?**
+
+In **Room Database**, relationships between entities (tables) can be defined using standard relational database concepts like **one-to-one**, **one-to-many**, and **many-to-many**. These relationships are defined using foreign keys and data classes to represent the entities and their relationships.
+
+#### **One-to-One Relationship**:
+A **one-to-one** relationship occurs when each row in one table corresponds to exactly one row in another table. In Room, you can achieve this by using a **foreign key** in one of the entities.
+
+- **Example**: A `User` has exactly one `Profile`.
+
+```kotlin
+@Entity
+data class User(
+    @PrimaryKey val userId: Long,
+    val userName: String
+)
+
+@Entity(
+    foreignKeys = [ForeignKey(
+        entity = User::class,
+        parentColumns = ["userId"],
+        childColumns = ["userOwnerId"],
+        onDelete = ForeignKey.CASCADE
+    )]
+)
+data class Profile(
+    @PrimaryKey val profileId: Long,
+    val bio: String,
+    val userOwnerId: Long  // Foreign key referring to User
+)
+
+// Data class to represent the one-to-one relationship
+data class UserWithProfile(
+    @Embedded val user: User,
+    @Relation(
+        parentColumn = "userId",
+        entityColumn = "userOwnerId"
+    )
+    val profile: Profile
+)
+```
+- **Explanation**:
+  - The `User` entity contains the primary key `userId`.
+  - The `Profile` entity references `User` via the `userOwnerId` foreign key.
+  - The `UserWithProfile` data class combines both entities in a single class, allowing you to query the database for a user and their profile.
+
+#### **One-to-Many Relationship**:
+A **one-to-many** relationship is when a single entity in one table is related to multiple entities in another table. This is achieved using foreign keys and `@Relation` annotations.
+
+- **Example**: A `User` can have multiple `Orders`.
+
+```kotlin
+@Entity
+data class User(
+    @PrimaryKey val userId: Long,
+    val userName: String
+)
+
+@Entity(
+    foreignKeys = [ForeignKey(
+        entity = User::class,
+        parentColumns = ["userId"],
+        childColumns = ["userOwnerId"],
+        onDelete = ForeignKey.CASCADE
+    )]
+)
+data class Order(
+    @PrimaryKey val orderId: Long,
+    val orderDate: String,
+    val userOwnerId: Long  // Foreign key referring to User
+)
+
+// Data class to represent the one-to-many relationship
+data class UserWithOrders(
+    @Embedded val user: User,
+    @Relation(
+        parentColumn = "userId",
+        entityColumn = "userOwnerId"
+    )
+    val orders: List<Order>
+)
+```
+- **Explanation**:
+  - The `Order` entity contains a foreign key `userOwnerId` that references `User`.
+  - The `UserWithOrders` data class holds a list of orders for each user, representing a one-to-many relationship.
+
+#### **Many-to-Many Relationship**:
+A **many-to-many** relationship requires a **junction table** (or cross-reference table) to link two entities.
+
+- **Example**: A `Student` can be enrolled in multiple `Courses`, and a `Course` can have multiple `Students`.
+
+```kotlin
+@Entity
+data class Student(
+    @PrimaryKey val studentId: Long,
+    val studentName: String
+)
+
+@Entity
+data class Course(
+    @PrimaryKey val courseId: Long,
+    val courseName: String
+)
+
+@Entity(primaryKeys = ["studentId", "courseId"])
+data class StudentCourseCrossRef(
+    val studentId: Long,
+    val courseId: Long
+)
+
+// Data class to represent the many-to-many relationship
+data class StudentWithCourses(
+    @Embedded val student: Student,
+    @Relation(
+        parentColumn = "studentId",
+        entityColumn = "courseId",
+        associateBy = Junction(StudentCourseCrossRef::class)
+    )
+    val courses: List<Course>
+)
+```
+- **Explanation**:
+  - The `StudentCourseCrossRef` entity serves as the junction table linking `Student` and `Course`.
+  - The `StudentWithCourses` data class allows querying the relationship between students and their enrolled courses.
+
+---
+
+### 16. **How do you manage state in Jetpack Compose?**
+
+In **Jetpack Compose**, state is handled declaratively, which means the UI automatically updates when the state changes. There are several ways to manage and observe state in Compose, depending on the complexity of the use case.
+
+#### **1. Simple State with `remember`**:
+The simplest way to handle state is by using the **`remember`** function. `remember` helps you store state that survives recompositions but does not survive configuration changes.
+
+- **Example**:
+```kotlin
+@Composable
+fun Counter() {
+    var count by remember { mutableStateOf(0) }
+
+    Column {
+        Text(text = "Count: $count")
+        Button(onClick = { count++ }) {
+            Text("Increment")
+        }
+    }
+}
+```
+- **Explanation**:
+  - `remember` creates a state that survives across recompositions.
+  - `mutableStateOf` creates a mutable state that automatically triggers a UI re-render when the value changes.
+
+#### **2. State Hoisting**:
+State hoisting is a pattern where state is moved to a higher-level component and passed down to child composables as parameters. This approach makes state management easier to handle in more complex UIs.
+
+- **Example**:
+```kotlin
+@Composable
+fun CounterApp() {
+    var count by remember { mutableStateOf(0) }
+    CounterDisplay(count, onIncrement = { count++ })
+}
+
+@Composable
+fun CounterDisplay(count: Int, onIncrement: () -> Unit) {
+    Column {
+        Text(text = "Count: $count")
+        Button(onClick = onIncrement) {
+            Text("Increment")
+        }
+    }
+}
+```
+- **Explanation**:
+  - `CounterApp` hoists the state and passes it down to `CounterDisplay` as a parameter.
+  - This allows the state to be controlled externally, making the child composable stateless and reusable.
+
+#### **3. `ViewModel` for State Management**:
+When managing more complex UI state or state that should persist across configuration changes (like screen rotations), you should use a **`ViewModel`**. Jetpack Compose integrates well with the `ViewModel`.
+
+- **Example**:
+```kotlin
+class CounterViewModel : ViewModel() {
+    private val _count = mutableStateOf(0)
+    val count: State<Int> = _count
+
+    fun increment() {
+        _count.value++
+    }
+}
+
+@Composable
+fun CounterScreen(viewModel: CounterViewModel = viewModel()) {
+    val count by viewModel.count
+
+    Column {
+        Text(text = "Count: $count")
+        Button(onClick = { viewModel.increment() }) {
+            Text("Increment")
+        }
+    }
+}
+```
+- **Explanation**:
+  - The `CounterViewModel` holds the state (`_count`) that persists through configuration changes.
+  - `CounterScreen` observes the state from the `ViewModel` and updates the UI whenever the state changes.
+
+#### **4. `rememberSaveable` for State Preservation**:
+To preserve state across configuration changes (such as screen rotations) without using a `ViewModel`, you can use **`rememberSaveable`**. It works similarly to `remember` but saves the state in a bundle.
+
+- **Example**:
+```kotlin
+@Composable
+fun Counter() {
+    var count by rememberSaveable { mutableStateOf(0) }
+
+    Column {
+        Text(text = "Count: $count")
+        Button(onClick = { count++ }) {
+            Text("Increment")
+        }
+    }
+}
+```
+- **Explanation**:
+  - `rememberSaveable` saves the state to a bundle, so it survives configuration changes like rotations.
+
+---
+
+### Summary:
+- **Room Database Relations**: Defined using foreign keys and data classes, allowing relationships like one-to-one, one-to-many, and many-to-many using the `@Relation` annotation.
+- **Jetpack Compose State Management**: State can be managed using `remember` for simple state, **state hoisting** for better organization, `ViewModel` for complex and persistent state, and `rememberSaveable` for state preservation across configuration changes.
