@@ -15,7 +15,23 @@
 
 ---
 
-### 2. How do you ensure ViewModel survives configuration changes but does not leak memory? What are the challenges associated with lifecycle handling in MVVM?
+### 2. How does ViewModel survive the configuration changes internally?
+
+**Answer**:
+
+ViewModelStoreOwner: The Activity or Fragment that owns the ViewModel implements the ViewModelStoreOwner interface, which contains a ViewModelStore. The ViewModelStore is used to hold ViewModel instances.
+
+ViewModelStore Retention: When a configuration change (like screen rotation) occurs, Android recreates the Activity or Fragment, but the ViewModelStore remains intact. The ViewModelStore is retained within the Activity/Fragment's lifecycle, which prevents the ViewModel from being cleared.
+
+ViewModelProvider: When the new instance of the Activity or Fragment is created, it uses a ViewModelProvider, which looks into the retained ViewModelStore to check if a ViewModel already exists. If it does, the existing instance is returned; if not, a new instance is created.
+
+Lifecycle Awareness: The ViewModel is lifecycle-aware, meaning it stays in memory only while the Activity/Fragment is in a valid state. Once the Activity is permanently destroyed (e.g., the user navigates away from it), the ViewModel is also cleared.
+
+This mechanism ensures that the ViewModel survives across configuration changes, allowing the UI to maintain consistency without losing important state-related data.
+
+For more details: https://medium.com/@milindamrutkar/the-internals-of-viewmodel-and-surviving-configuration-changes-d62f0c871c30
+
+### 3. How do you ensure ViewModel survives configuration changes but does not leak memory? What are the challenges associated with lifecycle handling in MVVM?
 
 **Answer**:
 - **Surviving Configuration Changes**: In Android, ViewModels are designed to survive configuration changes such as screen rotations. By using `ViewModelProviders` or `by viewModels()` (in Jetpack components), Android will automatically recreate the ViewModel after configuration changes, ensuring that the data is retained while the UI is recreated.
@@ -34,47 +50,6 @@ class MyActivity : AppCompatActivity() {
 - **Lifecycle Challenges**:
   - Handling **LiveData** and **Observers** carefully. Observers in the View (Activity/Fragment) should properly unregister during the lifecycle (`onDestroy` or `onPause`) to avoid holding onto the View after it’s destroyed.
   - Long-running operations in ViewModel should also respect the lifecycle of the Activity/Fragment. This can be handled using **CoroutineScopes** tied to the lifecycle or using **WorkManager** for operations that need to persist across lifecycle events.
-
----
-
-### 3. Explain how you would architect an Android app that needs to load data from multiple sources (local DB, network) while keeping the ViewModel decoupled from the data source?
-
-**Answer**:
-To decouple the ViewModel from data sources and handle multiple sources like local databases and network APIs, we follow a **Repository pattern**. The ViewModel interacts only with the Repository, which abstracts the data sources (network and local).
-
-- **Repository Pattern**:
-
-```kotlin
-class MyRepository(
-    private val localDataSource: LocalDataSource,  // Room DB or any local storage
-    private val remoteDataSource: RemoteDataSource  // Retrofit or network client
-) {
-    fun getData(): LiveData<List<Data>> {
-        // First fetch from local source
-        val localData = localDataSource.getData()
-
-        // Fetch from network and update local DB
-        remoteDataSource.getDataFromNetwork().apply {
-            localDataSource.updateData(this)
-        }
-
-        return localData  // Return updated data to ViewModel
-    }
-}
-```
-
-- **ViewModel**:
-
-```kotlin
-class MyViewModel(private val repository: MyRepository) : ViewModel() {
-    val data: LiveData<List<Data>> = repository.getData()
-}
-```
-
-This architecture ensures:
-- The **ViewModel** remains unaware of whether the data is coming from a local or remote source.
-- The **Repository** manages data flow and decides when to fetch from the network or local database.
-- The app is scalable and maintainable as new data sources can be added without changing the ViewModel.
 
 ---
 
@@ -148,3 +123,163 @@ Here are the **advantages** and **disadvantages** of using **MVVM (Model-View-Vi
 By understanding both the strengths and weaknesses, you can decide whether MVVM is the right architecture for your Android project.
 
 ---
+
+### 5. How can Clean Architecture be implemented along with MVVM?
+
+In **MVVM with Clean Architecture**, each layer corresponds to specific responsibilities, ensuring separation and modularity:
+
+1. **Domain Layer**: The **use cases** (interactors) contain the core business logic and interact with **repositories** to get data. They are pure Kotlin classes without dependencies on Android components.
+  
+2. **Data Layer**: Contains **repositories** and **data sources** (e.g., local database or remote API). The repository provides data to the domain layer and abstracts away data-fetching details.
+
+3. **Presentation Layer**: The **ViewModel** sits here and interacts with use cases to get data, which is then provided to the UI (View). The **ViewModel** transforms the data for presentation and handles state, while the **View** observes these changes.
+
+**Dependency Flow**: The **Data Layer** depends on the **Domain Layer** (not vice versa), and the **Presentation Layer** depends on the **Domain Layer** for use cases. This way, the **core logic** remains untouched if the UI or data source changes, maintaining **clean separation**.
+
+**Clean Architecture Layers Integrated with MVVM**
+
+1. **Entities**: Pure data classes representing core business logic.
+2. **Use Cases**: Business logic actions, invoked by ViewModel.
+3. **Repository**: Interface to access data sources, bridging the gap between ViewModel and external data.
+4. **ViewModel**: Handles UI-related logic and interacts with Use Cases.
+5. **View**: Displays data from the ViewModel.
+
+Let’s see this with a code example for a feature: **Fetching a list of users**.
+
+---
+
+**Step 1: Entities (Domain Layer)**
+
+Entities are simple data classes that define the business logic. They are part of the **Domain Layer** and do not depend on other layers.
+
+```kotlin
+data class User(
+    val id: Int,
+    val name: String,
+    val email: String
+)
+```
+
+---
+
+**Step 2: Use Cases (Domain Layer)**
+
+Use Cases define specific business actions and encapsulate the application logic.
+
+```kotlin
+class GetUsersUseCase(private val userRepository: UserRepository) {
+    suspend fun execute(): List<User> {
+        return userRepository.getUsers()
+    }
+}
+```
+
+**Explanation**: The `GetUsersUseCase` uses a repository to fetch a list of users. It does not know whether data comes from a remote API or a local database.
+
+---
+
+**Step 3: Repository (Data Layer)**
+
+The **Repository** interfaces with the data sources. It is implemented to access either local or remote data.
+
+- **Repository Interface**:
+```kotlin
+interface UserRepository {
+    suspend fun getUsers(): List<User>
+}
+```
+
+- **Repository Implementation**:
+```kotlin
+class UserRepositoryImpl(
+    private val remoteDataSource: RemoteDataSource,
+    private val localDataSource: LocalDataSource
+) : UserRepository {
+    override suspend fun getUsers(): List<User> {
+        // Fetch from remote or local
+        val users = remoteDataSource.fetchUsers()
+        localDataSource.saveUsers(users)
+        return users
+    }
+}
+```
+
+**Explanation**: The repository fetches data from a **remote source** or uses **local caching**. The ViewModel does not interact directly with the data source, ensuring the business logic is separated.
+
+---
+
+**Step 4: ViewModel (Presentation Layer)**
+
+The **ViewModel** connects the use cases with the UI. It fetches data from the Use Case and manages the UI state.
+
+```kotlin
+class UserViewModel(private val getUsersUseCase: GetUsersUseCase) : ViewModel() {
+    private val _users = MutableLiveData<List<User>>()
+    val users: LiveData<List<User>> get() = _users
+
+    fun fetchUsers() {
+        viewModelScope.launch {
+            try {
+                val userList = getUsersUseCase.execute()
+                _users.value = userList
+            } catch (e: Exception) {
+                // Handle error state
+            }
+        }
+    }
+}
+```
+
+**Explanation**: The ViewModel uses `viewModelScope` to launch a coroutine and calls the `GetUsersUseCase` to get the data. This keeps the ViewModel's role limited to managing UI logic.
+
+---
+
+**Step 5: View (UI Layer)**
+
+The **View** observes data from the ViewModel and updates the UI accordingly.
+
+```kotlin
+class UserFragment : Fragment() {
+    private val userViewModel: UserViewModel by viewModels {
+        UserViewModelFactory(GetUsersUseCase(UserRepositoryImpl(RemoteDataSource(), LocalDataSource())))
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        userViewModel.users.observe(viewLifecycleOwner, Observer { users ->
+            // Update the UI with the list of users
+        })
+
+        userViewModel.fetchUsers()
+    }
+}
+```
+
+**Explanation**: The `UserFragment` observes the `users` LiveData from the ViewModel. When the data changes, it updates the UI.
+
+---
+
+**Summary of Clean Architecture Implementation with MVVM:**
+
+1. **Domain Layer**:
+   - **Entities**: Define core data structure (`User`).
+   - **Use Cases**: Define business actions (`GetUsersUseCase`).
+
+2. **Data Layer**:
+   - **Repository**: Bridge between the Domain and Data sources (`UserRepositoryImpl`).
+
+3. **Presentation Layer**:
+   - **ViewModel**: Executes use cases and manages UI state (`UserViewModel`).
+
+4. **UI Layer**:
+   - **View**: Observes ViewModel and renders data (`UserFragment`).
+
+**Benefits of Combining Clean Architecture with MVVM:**
+
+- **Separation of Concerns**: Each layer has a specific role, making the code more modular and testable.
+- **Testability**: The domain logic (use cases) and ViewModel can be independently tested.
+- **Scalability**: Adding new features becomes easier since the architecture is well-organized.
+- **Maintainability**: Changes in one layer (e.g., data source) do not affect the rest of the app, allowing for easier maintenance. 
+
+This approach provides a robust foundation for building scalable and maintainable Android applications.
