@@ -68,11 +68,10 @@ The main difference is that cold flows only produce values when collected, while
 
 ---
 
-### Additional Advanced Kotlin Questions with Answers:
-
-### 3. **What is the difference between `let`, `apply`, `also`, `run`, and `with` in Kotlin?**
+### 3. **What are scope functions? Explain the differences between them.**
 
 **Answer**:
+The Kotlin standard library contains several functions whose sole purpose is to execute a block of code within the context of an object. When you call such a function on an object with a lambda expression provided, it forms a temporary scope. In this scope, you can access the object without its name. Such functions are called scope functions. There are five of them: let, run, with, apply, and also.
 - **`let`**: Used when you want to operate on the result of an expression. It takes `it` as the implicit name of the object.
   
   ```kotlin
@@ -196,23 +195,10 @@ Inlining can reduce the performance overhead of creating function objects and ca
 
 ---
 
-### 8. **What is the difference between `vararg` and `spread operator` in Kotlin?**
+### 8. **Explain the usages of inline, noinline and crossinline?**
 
 **Answer**:
-- **`vararg`**: Used to define a function that takes a variable number of arguments.
-
-  ```kotlin
-  fun greet(vararg names: String) {
-      for (name in names) println("Hello, $name")
-  }
-  ```
-
-- **Spread Operator** (`*`): Used to pass an array to a function that accepts a `vararg`.
-
-  ```kotlin
-  val names = arrayOf("John", "Jane")
-  greet(*names)  // Passing array with spread operator
-  ```
+Refer here - https://medium.com/android-news/inline-noinline-crossinline-what-do-they-mean-b13f48e113c2
 
 ---
 
@@ -1011,6 +997,7 @@ fun Counter() {
 
 ---
 
-### Summary:
-- **Room Database Relations**: Defined using foreign keys and data classes, allowing relationships like one-to-one, one-to-many, and many-to-many using the `@Relation` annotation.
-- **Jetpack Compose State Management**: State can be managed using `remember` for simple state, **state hoisting** for better organization, `ViewModel` for complex and persistent state, and `rememberSaveable` for state preservation across configuration changes.
+### 17. **How to save UI state in a process death scenario?**
+
+**Answer**:
+Refer here - https://developer.android.com/topic/libraries/architecture/saving-states#onsaveinstancestate
