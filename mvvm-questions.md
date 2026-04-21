@@ -1,8 +1,10 @@
+# MVVM Interview Questions
+
 ### 1. Explain the role of each component (Model, View, ViewModel) in MVVM and how they interact. What are the common mistakes developers make when implementing MVVM in Android?
 
-**Answer**:
+**Answer:**
 - **Model**: Represents the data layer and business logic. It contains the data sources (databases, APIs, repositories) and does not directly communicate with the View. It’s responsible for fetching, storing, and updating data.
-  
+
 - **View**: Represents the UI. The View observes the ViewModel and reflects any changes. It shouldn’t contain any business logic and must be as dumb as possible. The View binds data and reacts to user interactions (button clicks, etc.) by sending them to the ViewModel.
 
 - **ViewModel**: Acts as the intermediary between the View and the Model. It holds the UI-related data and business logic for the View. The ViewModel observes changes in the Model and updates the View accordingly. It should also handle user input from the View and delegate it to the appropriate parts of the Model.
@@ -15,25 +17,25 @@
 
 ---
 
-### 2. How does ViewModel survive the configuration changes internally?
+### 2. How does ViewModel survive configuration changes internally?
 
-**Answer**:
+**Answer:**
 
-ViewModelStoreOwner: The Activity or Fragment that owns the ViewModel implements the ViewModelStoreOwner interface, which contains a ViewModelStore. The ViewModelStore is used to hold ViewModel instances.
+- **ViewModelStoreOwner**: The Activity or Fragment that owns the ViewModel implements the `ViewModelStoreOwner` interface, which contains a `ViewModelStore`. The `ViewModelStore` is used to hold ViewModel instances.
 
-ViewModelStore Retention: When a configuration change (like screen rotation) occurs, Android recreates the Activity or Fragment, but the ViewModelStore remains intact. The ViewModelStore is retained within the Activity/Fragment's lifecycle, which prevents the ViewModel from being cleared.
+- **ViewModelStore Retention**: When a configuration change (like screen rotation) occurs, Android recreates the Activity or Fragment, but the `ViewModelStore` remains intact. The `ViewModelStore` is retained within the Activity/Fragment's lifecycle, which prevents the ViewModel from being cleared.
 
-ViewModelProvider: When the new instance of the Activity or Fragment is created, it uses a ViewModelProvider, which looks into the retained ViewModelStore to check if a ViewModel already exists. If it does, the existing instance is returned; if not, a new instance is created.
+- **ViewModelProvider**: When the new instance of the Activity or Fragment is created, it uses a `ViewModelProvider`, which looks into the retained `ViewModelStore` to check if a ViewModel already exists. If it does, the existing instance is returned; if not, a new instance is created.
 
-Lifecycle Awareness: The ViewModel is lifecycle-aware, meaning it stays in memory only while the Activity/Fragment is in a valid state. Once the Activity is permanently destroyed (e.g., the user navigates away from it), the ViewModel is also cleared.
+- **Lifecycle Awareness**: The ViewModel is lifecycle-aware, meaning it stays in memory only while the Activity/Fragment is in a valid state. Once the Activity is permanently destroyed (e.g., the user navigates away from it), the ViewModel is also cleared.
 
 This mechanism ensures that the ViewModel survives across configuration changes, allowing the UI to maintain consistency without losing important state-related data.
 
-For more details: https://medium.com/@milindamrutkar/the-internals-of-viewmodel-and-surviving-configuration-changes-d62f0c871c30
+For more details, refer here: https://medium.com/@milindamrutkar/the-internals-of-viewmodel-and-surviving-configuration-changes-d62f0c871c30
 
 ### 3. How do you ensure ViewModel survives configuration changes but does not leak memory? What are the challenges associated with lifecycle handling in MVVM?
 
-**Answer**:
+**Answer:**
 - **Surviving Configuration Changes**: In Android, ViewModels are designed to survive configuration changes such as screen rotations. By using `ViewModelProviders` or `by viewModels()` (in Jetpack components), Android will automatically recreate the ViewModel after configuration changes, ensuring that the data is retained while the UI is recreated.
 
 ```kotlin
@@ -55,14 +57,14 @@ class MyActivity : AppCompatActivity() {
 
 ### 4. What are the advantages and disadvantages of using MVVM architecture?
 
-**Answer**:
+**Answer:**
 Here are the **advantages** and **disadvantages** of using **MVVM (Model-View-ViewModel)** architecture in Android development:
 
-### **Advantages of MVVM Architecture**:
+### **Advantages of MVVM Architecture**
 
 1. **Separation of Concerns**:
    - MVVM promotes clear separation between the UI (View), business logic (ViewModel), and data handling (Model). This makes the code more modular, easier to maintain, and testable.
-   
+
 2. **Improved Testability**:
    - Since the **ViewModel** doesn’t depend on the Android framework (like `Activity` or `Fragment`), it can be easily unit tested in isolation. The UI logic (ViewModel) can be tested without needing to interact with the Android OS.
 
@@ -86,7 +88,7 @@ Here are the **advantages** and **disadvantages** of using **MVVM (Model-View-Vi
 
 ---
 
-### **Disadvantages of MVVM Architecture**:
+### **Disadvantages of MVVM Architecture**
 
 1. **Steeper Learning Curve**:
    - Implementing MVVM can be complex for developers who are new to Android or this architecture pattern. Understanding how to properly structure ViewModel, Model, and the interaction between these components, especially with Data Binding, may take time.
@@ -111,12 +113,12 @@ Here are the **advantages** and **disadvantages** of using **MVVM (Model-View-Vi
 
 ---
 
-### **When to Use MVVM**:
+### **When to Use MVVM**
 - Use MVVM when you have a medium to large-sized application with complex business logic and UI interactions.
 - MVVM is ideal for apps where you want to cleanly separate UI rendering from business logic and data handling, and where testability and maintainability are important.
 - If you're working with Jetpack's ViewModel and LiveData or Data Binding, MVVM fits perfectly into the workflow.
 
-### **When Not to Use MVVM**:
+### **When Not to Use MVVM**
 - Avoid MVVM in simple apps or prototypes where setting up the extra layers may introduce unnecessary complexity.
 - If your team is unfamiliar with MVVM, starting with simpler architectures like **MVP** may reduce complexity.
 
@@ -129,7 +131,7 @@ By understanding both the strengths and weaknesses, you can decide whether MVVM 
 In **MVVM with Clean Architecture**, each layer corresponds to specific responsibilities, ensuring separation and modularity:
 
 1. **Domain Layer**: The **use cases** (interactors) contain the core business logic and interact with **repositories** to get data. They are pure Kotlin classes without dependencies on Android components.
-  
+
 2. **Data Layer**: Contains **repositories** and **data sources** (e.g., local database or remote API). The repository provides data to the domain layer and abstracts away data-fetching details.
 
 3. **Presentation Layer**: The **ViewModel** sits here and interacts with use cases to get data, which is then provided to the UI (View). The **ViewModel** transforms the data for presentation and handles state, while the **View** observes these changes.
@@ -260,14 +262,14 @@ class UserFragment : Fragment() {
 
 ---
 
-**Summary of Clean Architecture Implementation with MVVM:**
+**Summary of Clean Architecture Implementation with MVVM**
 
 1. **Domain Layer**:
    - **Entities**: Define core data structure (`User`).
    - **Use Cases**: Define business actions (`GetUsersUseCase`).
 
 2. **Data Layer**:
-   - **Repository**: Bridge between the Domain and Data sources (`UserRepositoryImpl`).
+   - **Repository**: Bridge between the Domain and data sources (`UserRepositoryImpl`).
 
 3. **Presentation Layer**:
    - **ViewModel**: Executes use cases and manages UI state (`UserViewModel`).
@@ -275,11 +277,11 @@ class UserFragment : Fragment() {
 4. **UI Layer**:
    - **View**: Observes ViewModel and renders data (`UserFragment`).
 
-**Benefits of Combining Clean Architecture with MVVM:**
+**Benefits of Combining Clean Architecture with MVVM**
 
 - **Separation of Concerns**: Each layer has a specific role, making the code more modular and testable.
 - **Testability**: The domain logic (use cases) and ViewModel can be independently tested.
 - **Scalability**: Adding new features becomes easier since the architecture is well-organized.
-- **Maintainability**: Changes in one layer (e.g., data source) do not affect the rest of the app, allowing for easier maintenance. 
+- **Maintainability**: Changes in one layer (e.g., data source) do not affect the rest of the app, allowing for easier maintenance.
 
 This approach provides a robust foundation for building scalable and maintainable Android applications.

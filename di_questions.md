@@ -22,7 +22,7 @@
 
 ---
 
-**Q4. What is the difference between a DI Framework and a Service Locator?**
+**Q4. What is the difference between a DI framework and a Service Locator?**
 
 > In DI, dependencies are **pushed** into the class from outside — the class has no knowledge of how or where they come from. In Service Locator, the class **pulls** dependencies by calling a locator directly. Service Locator is considered an anti-pattern because classes are still coupled to the locator itself, making them hard to test and dependencies harder to track. With DI, the dependency graph is explicit and transparent.
 
@@ -44,16 +44,16 @@
 
 ---
 
-**Q7. What is the dependency graph and why does it matter?**
+**Q7. What is a dependency graph and why does it matter?**
 
-> The dependency graph is the complete tree of dependencies that need to be resolved to construct a given object. If class A depends on B, and B depends on C and D, the DI framework traverses this graph to instantiate everything in the correct order. In large applications, this graph can become complex. A well-structured DI setup ensures there are no circular dependencies and that every node in the graph is resolvable. DI frameworks like Koin (runtime) and Hilt (compile-time) manage this graph automatically.
+> A dependency graph is the complete tree of dependencies that need to be resolved to construct a given object. If class A depends on B, and B depends on C and D, the DI framework traverses this graph to instantiate everything in the correct order. In large applications, this graph can become complex. A well-structured DI setup ensures there are no circular dependencies and that every node in the graph is resolvable. DI frameworks like Koin (runtime) and Hilt (compile-time) manage this graph automatically.
 
 ---
 
 **Q8. What is the difference between compile-time and runtime dependency injection?**
 
 > - **Compile-time DI** (Hilt, Dagger) — Generates code at compile time to wire dependencies. Errors in the dependency graph are caught during compilation, not at runtime. Has zero runtime overhead but increases build time.
-> - **Runtime DI** (Koin) — Resolves dependencies at runtime using a registry of lambdas. Errors are only discovered when the dependency is first requested. Faster to build, easier to set up, but slightly higher runtime cost.
+> - **Runtime DI** (Koin) — Resolves dependencies at runtime using a registry of lambdas. Errors are discovered only when the dependency is first requested. Faster to build, easier to set up, but slightly higher runtime cost.
 >
 > For KMP, compile-time DI across all platforms is complex, making runtime DI (Koin) the more practical choice today.
 
@@ -72,12 +72,12 @@
 **Q10. How do you handle circular dependencies and what causes them?**
 
 > Circular dependencies occur when class A depends on B and B depends on A, directly or transitively. This typically signals a design problem — classes are too tightly coupled or responsibilities are misallocated. Solutions include:
+>
 > - Introducing a mediator or interface to break the cycle
 > - Refactoring to extract a shared dependency
 > - Using lazy injection (resolved only when first accessed)
 >
 > In Koin, lazy injection via `by inject()` can defer resolution. In Hilt, Dagger's `Provider<T>` or `Lazy<T>` serve the same purpose. But the real fix is always architectural.
-
 
 ## Quick Reference Card
 
@@ -96,3 +96,4 @@
 │ Best For    │ KMP/Android  │ Android    │ Android    │
 └─────────────┴──────────────┴────────────┴────────────┘
 ```
+<br><br>
