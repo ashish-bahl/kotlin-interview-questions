@@ -5,6 +5,11 @@ This repository contains interview-preparation questions and answers for mobile 
 ## Topics
 
 - [Kotlin questions](kotlin_questions.md)
-- [Dependency injection questions](di_questions.md)
+- [Core dependency injection questions](Dependency%20Injection/core_di.md)
+- [Hilt questions](Dependency%20Injection/hilt.md)
+- [Koin questions](Dependency%20Injection/koin.md)
+- [Scenario-based DI questions](Dependency%20Injection/scenario_based_di.md)
 - [MVVM questions](mvvm-questions.md)
 - [iOS questions with KMP-aware answers](ios_questions.md)
+- [Network and API questions](network_and_apis.md)
+- [Tricky questions](tricky_questions.md)

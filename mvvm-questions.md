@@ -285,3 +285,4 @@ class UserFragment : Fragment() {
 - **Maintainability**: Changes in one layer (e.g., data source) do not affect the rest of the app, allowing for easier maintenance.
 
 This approach provides a robust foundation for building scalable and maintainable Android applications.
+

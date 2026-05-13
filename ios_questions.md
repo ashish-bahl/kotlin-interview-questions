@@ -59,3 +59,4 @@ These answers should be your **ceiling** on iOS questions — not their baseline
 - If pushed beyond these questions, say: *"My iOS knowledge is primarily from the KMP integration layer rather than native development — I'd want to be honest about that boundary."*
 
 That's a mature, credible position that won't fall apart under pressure.
+
