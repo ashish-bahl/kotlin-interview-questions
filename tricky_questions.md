@@ -407,4 +407,32 @@ Dependency Injection helps us build loosely coupled, testable, and scalable Andr
 
 ---
 
+## Q8: How to use Strict mode in Android?
+
+To use StrictMode in Android, you configure it in your code to catch accidental disk or network operations on the main thread and resource leaks. It is a developer tool and should only be enabled in debug builds.
+
+1. Enable StrictMode in code.
+   Place the configuration in your `Application`, `Activity`, or another component's `onCreate()` method.
+
+2. Choose policies and penalties.
+   StrictMode categorizes checks into two main policies:
+   - `ThreadPolicy`: Monitors the current thread, usually the main UI thread, for operations that can cause jank or freezes.
+     - Detect: `detectDiskReads()`, `detectDiskWrites()`, `detectNetwork()`, `detectAll()`
+     - Penalties: `penaltyLog()`, `penaltyFlashScreen()`, `penaltyDialog()`, `penaltyDeath()`
+   - `VmPolicy`: Monitors the virtual machine for broader architectural issues.
+     - Detect: `detectLeakedSqlLiteObjects()`, `detectActivityLeaks()`, `detectLeakedClosableObjects()`
+     - Penalties: `penaltyLog()`, `penaltyDeath()`
+
+3. Use Developer Options for visual feedback.
+   On many Android devices, you can enable a visual indicator without writing code:
+   - Open Settings &gt; Developer options.
+   - Scroll to the Monitoring section.
+   - Toggle Strict mode enabled.
+   - The screen flashes when an app performs long operations on the main thread.
+
+4. Handle violations.
+   If StrictMode triggers, check Logcat for `StrictMode` tags.
+   - Fix the offending task, such as a file write or database query, by moving it to a background thread using Kotlin Coroutines with `Dispatchers.IO`, `Handler`, or `ExecutorService`.
+   - If you must perform a disk read on the main thread, such as unavoidable small `SharedPreferences` access, temporarily permit it by saving the old policy and reapplying it after the task.
+
 <br><br>
